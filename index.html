@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>深蓝训练营 · 水肺 OW 交互考核</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%230E2A47'/%3E%3Ccircle cx='13' cy='12' r='2' fill='%233FD8D0'/%3E%3Ccircle cx='19' cy='18' r='1.5' fill='%233FD8D0'/%3E%3C/svg%3E">
+<style>
+:root{
+  --abyss:#06121F;
+  --deep:#0E2A47;
+  --mid:#173E63;
+  --foam:#E8F1F8;
+  --cyan:#3FD8D0;
+  --cyan-dim:rgba(63,216,208,.35);
+  --amber:#F4B942;
+  --red:#E5534B;
+  --line:rgba(232,241,248,.14);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  background:var(--abyss);
+  color:var(--foam);
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+#sea{
+  position:fixed;inset:0;
+  background:linear-gradient(180deg,#1B4965 0%,#0E2A47 30%,#06121F 70%,#030A12 100%);
+  z-index:0;
+}
+#bubbles{position:fixed;inset:0;z-index:1;pointer-events:none}
+#app{
+  position:relative;z-index:2;
+  height:100%;
+  display:flex;flex-direction:column;
+}
+
+/* 顶部 HUD */
+.hud{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 22px;
+  border-bottom:1px solid var(--line);
+  font-size:13px;letter-spacing:.05em;
+}
+.hud .brand{
+  font-weight:700;letter-spacing:.18em;
+  color:var(--cyan);
+}
+.hud .stats{display:flex;gap:18px;align-items:center}
+.hud .stat{
+  display:flex;align-items:center;gap:6px;
+  color:rgba(232,241,248,.75);
+  font-variant-numeric:tabular-nums;
+}
+.hud .stat b{color:var(--foam);font-weight:600}
+.hud .stat.warn b{color:var(--amber)}
+.hud .stat.danger b{color:var(--red)}
+
+/* 主舞台 */
+.stage{
+  flex:1;
+  overflow-y:auto;
+  position:relative;
+}
+.view{
+  display:block;
+  min-height:100%;
+  padding:32px 22px 60px;
+  max-width:880px;margin:0 auto;
+  animation:fade .35s ease;
+}
+.view.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+h1{font-size:34px;line-height:1.2;font-weight:800;letter-spacing:-.01em}
+h2{font-size:22px;font-weight:700;margin-bottom:10px}
+.kicker{
+  display:inline-block;
+  font-size:12px;letter-spacing:.25em;
+  color:var(--cyan);
+  text-transform:uppercase;
+  margin-bottom:14px;
+  padding:4px 10px;
+  border:1px solid var(--cyan-dim);
+  border-radius:2px;
+}
+.lede{font-size:16px;line-height:1.75;color:rgba(232,241,248,.82);margin:14px 0 22px;max-width:640px}
+.tip{
+  background:rgba(63,216,208,.08);
+  border-left:3px solid var(--cyan);
+  padding:12px 14px;
+  font-size:14px;line-height:1.7;
+  border-radius:0 6px 6px 0;
+  margin:14px 0;
+}
+.tip.warn{background:rgba(244,185,66,.08);border-color:var(--amber)}
+.tip.danger{background:rgba(229,83,75,.08);border-color:var(--red)}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:13px 26px;
+  background:var(--cyan);color:#06202A;
+  border:none;border-radius:4px;
+  font-size:15px;font-weight:700;letter-spacing:.05em;
+  cursor:pointer;
+  font-family:inherit;
+  transition:transform .1s, filter .15s;
+  min-height:44px;
+}
+.btn:hover{filter:brightness(1.1)}
+.btn:active{transform:scale(.97)}
+.btn.ghost{
+  background:transparent;color:var(--foam);
+  border:1px solid var(--line);
+}
+.btn.ghost:hover{border-color:var(--cyan);color:var(--cyan)}
+.btn.big{padding:16px 36px;font-size:17px}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+.grid{display:grid;gap:12px}
+.grid.c2{grid-template-columns:repeat(2,1fr)}
+@media (max-width:600px){.grid.c2{grid-template-columns:1fr}}
+.card{
+  background:rgba(14,42,71,.6);
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:18px;
+}
+.card h3{font-size:15px;margin-bottom:6px;color:var(--cyan)}
+.card p{font-size:13.5px;line-height:1.65;color:rgba(232,241,248,.78)}
+
+.hero{
+  min-height:calc(100vh - 60px);
+  display:flex;flex-direction:column;justify-content:center;
+  max-width:720px;
+}
+.hero h1{font-size:44px;margin:14px 0 18px}
+.hero h1 em{font-style:normal;color:var(--cyan)}
+.hero .meta{
+  display:flex;gap:18px;margin:26px 0 34px;
+  font-size:13px;color:rgba(232,241,248,.6);
+}
+.hero .meta span::before{content:"·";margin-right:8px;color:var(--cyan)}
+.hero .meta span:first-child::before{display:none}
+
+.lvl-map{display:grid;gap:10px;margin-top:18px}
+.lvl-row{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 16px;
+  background:rgba(14,42,71,.55);
+  border:1px solid var(--line);
+  border-radius:6px;
+  cursor:pointer;
+  transition:border-color .15s, background .15s;
+}
+.lvl-row:hover{border-color:var(--cyan)}
+.lvl-row.locked{opacity:.45;cursor:not-allowed}
+.lvl-row.done{border-left:3px solid var(--cyan)}
+.lvl-row .num{
+  width:34px;height:34px;flex:none;
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--line);border-radius:50%;
+  font-weight:700;font-size:14px;
+}
+.lvl-row.done .num{background:var(--cyan);color:#06202A;border-color:var(--cyan)}
+.lvl-row .body{flex:1;min-width:0}
+.lvl-row .body b{display:block;font-size:15px;margin-bottom:2px}
+.lvl-row .body span{font-size:12.5px;color:rgba(232,241,248,.65)}
+.lvl-row .state{font-size:12px;color:var(--cyan)}
+.lvl-row.locked .state{color:rgba(232,241,248,.5)}
+
+.arena{
+  margin:22px 0;
+  padding:22px;
+  background:rgba(6,18,31,.55);
+  border:1px solid var(--line);
+  border-radius:10px;
+  text-align:center;
+}
+.arena .big-figure{
+  font-size:64px;font-weight:800;
+  font-variant-numeric:tabular-nums;
+  letter-spacing:-.02em;
+}
+.arena .big-figure small{font-size:18px;font-weight:400;color:rgba(232,241,248,.6);margin-left:6px}
+.arena .label{font-size:12px;letter-spacing:.2em;color:var(--cyan);text-transform:uppercase;margin-bottom:8px}
+
+.bar{
+  height:10px;background:rgba(232,241,248,.1);
+  border-radius:5px;overflow:hidden;margin:10px 0;
+}
+.bar > i{
+  display:block;height:100%;
+  background:var(--cyan);
+  width:0%;
+  transition:width .2s;
+}
+.bar.warn > i{background:var(--amber)}
+.bar.danger > i{background:var(--red)}
+
+.feedback{
+  min-height:28px;
+  font-size:14px;margin-top:12px;
+  color:rgba(232,241,248,.85);
+}
+.feedback.good{color:var(--cyan)}
+.feedback.bad{color:var(--red)}
+
+.quiz-q{font-size:17px;line-height:1.6;margin:18px 0 14px}
+.quiz-opts{display:grid;gap:8px}
+.quiz-opt{
+  text-align:left;
+  padding:13px 16px;
+  background:rgba(14,42,71,.6);
+  border:1px solid var(--line);
+  border-radius:6px;
+  cursor:pointer;
+  font-size:14.5px;line-height:1.5;
+  color:var(--foam);
+  font-family:inherit;
+  transition:border-color .15s, background .15s;
+}
+.quiz-opt:hover{border-color:var(--cyan)}
+.quiz-opt.correct{border-color:var(--cyan);background:rgba(63,216,208,.12)}
+.quiz-opt.wrong{border-color:var(--red);background:rgba(229,83,75,.12)}
+.quiz-opt:disabled{cursor:default;opacity:.85}
+
+.cert{
+  margin:30px auto;
+  max-width:680px;
+  padding:40px 34px;
+  background:linear-gradient(160deg,#0E2A47,#06121F);
+  border:2px solid var(--cyan-dim);
+  border-radius:10px;
+  text-align:center;
+  position:relative;
+}
+.cert::before,.cert::after{
+  content:"";position:absolute;
+  width:18px;height:18px;
+  border:2px solid var(--cyan);
+}
+.cert::before{top:10px;left:10px;border-right:none;border-bottom:none}
+.cert::after{bottom:10px;right:10px;border-left:none;border-top:none}
+.cert .seal{
+  width:80px;height:80px;margin:18px auto;
+  border-radius:50%;
+  background:radial-gradient(circle,var(--cyan) 0%,#1a7a75 100%);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;color:#06202A;
+  font-size:14px;letter-spacing:.1em;
+}
+.cert h2{font-size:26px;margin:6px 0}
+.cert .name{font-size:22px;color:var(--amber);margin:10px 0;letter-spacing:.1em}
+.cert p{font-size:13.5px;color:rgba(232,241,248,.75);line-height:1.7}
+
+.actions{display:flex;gap:10px;justify-content:center;margin-top:24px;flex-wrap:wrap}
+
+.gear-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:14px}
+.gear-item{
+  padding:14px 10px;
+  background:rgba(14,42,71,.6);
+  border:1px solid var(--line);
+  border-radius:6px;
+  cursor:pointer;
+  font-size:13.5px;
+  transition:all .15s;
+  text-align:center;
+}
+.gear-item:hover{border-color:var(--cyan)}
+.gear-item.selected{border-color:var(--amber);background:rgba(244,185,66,.1)}
+.gear-item.done{border-color:var(--cyan);background:rgba(63,216,208,.1)}
+.gear-item svg{width:32px;height:32px;display:block;margin:0 auto 6px}
+
+.timing-bar{
+  position:relative;
+  height:36px;
+  background:rgba(232,241,248,.08);
+  border-radius:18px;
+  overflow:hidden;
+  margin:20px 0;
+}
+.timing-bar .zone{
+  position:absolute;top:0;bottom:0;
+  background:var(--cyan-dim);
+}
+.timing-bar .marker{
+  position:absolute;top:0;bottom:0;width:3px;
+  background:var(--amber);
+  box-shadow:0 0 12px var(--amber);
+}
+
+.buoy-tank{
+  position:relative;
+  height:280px;
+  margin:16px 0;
+  background:linear-gradient(180deg,rgba(63,216,208,.05),rgba(6,18,31,.3));
+  border:1px solid var(--line);
+  border-radius:8px;
+  overflow:hidden;
+}
+.buoy-band{
+  position:absolute;left:0;right:0;
+  background:rgba(63,216,208,.18);
+  border-top:1px dashed var(--cyan);
+  border-bottom:1px dashed var(--cyan);
+}
+.buoy-diver{
+  position:absolute;left:50%;
+  width:40px;height:40px;
+  margin-left:-20px;
+  transition:top .18s;
+}
+.buoy-depth-mark{
+  position:absolute;left:8px;font-size:11px;
+  color:rgba(232,241,248,.5);
+  font-variant-numeric:tabular-nums;
+}
+
+.gesture-demo{
+  font-size:90px;line-height:1;
+  margin:20px 0;
+}
+
+@media (max-width:600px){
+  .hero h1{font-size:32px}
+  h1{font-size:26px}
+  .hud{padding:10px 14px;font-size:11.5px}
+  .hud .stats{gap:10px}
+  .view{padding:22px 16px 50px}
+}
+</style>
+</head>
+<body>
+<div id="sea"></div>
+<canvas id="bubbles"></canvas>
+
+<div id="app">
+  <header class="hud">
+    <div class="brand">深蓝训练营</div>
+    <div class="stats">
+      <div class="stat" id="hud-depth"><span>深度</span><b>0.0</b>m</div>
+      <div class="stat" id="hud-gas"><span>残压</span><b>200</b>bar</div>
+      <div class="stat" id="hud-time"><span>潜水时间</span><b>0:00</b></div>
+    </div>
+  </header>
+
+  <main class="stage" id="stage"></main>
+</div>
+
+<script>
+const S = { depth:0, gas:200, diveTime:0, started:false,
+  cleared:{l1:false,l2:false,l3:false,l4:false,l5:false,l6:false,l7:false,l8:false},
+  examScore:0, name:"潜学者" };
+
+const cvs = document.getElementById('bubbles');
+const ctx = cvs.getContext('2d');
+let bubbles = [];
+function resize(){ cvs.width=window.innerWidth; cvs.height=window.innerHeight; }
+window.addEventListener('resize', resize); resize();
+for (let i=0;i<40;i++){
+  bubbles.push({ x:Math.random()*cvs.width, y:Math.random()*cvs.height,
+    r:1+Math.random()*3.5, s:.3+Math.random()*.8, o:.15+Math.random()*.4 });
+}
+function tick(){
+  ctx.clearRect(0,0,cvs.width,cvs.height);
+  bubbles.forEach(b=>{
+    b.y -= b.s; b.x += Math.sin(b.y*.02)*.3;
+    if (b.y < -10){ b.y = cvs.height+10; b.x = Math.random()*cvs.width; }
+    ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
+    ctx.fillStyle = `rgba(180,230,240,${b.o})`; ctx.fill();
+  });
+  requestAnimationFrame(tick);
+}
+tick();
+
+function updateHUD(){
+  document.querySelector('#hud-depth b').textContent = S.depth.toFixed(1);
+  const gasEl = document.querySelector('#hud-gas');
+  gasEl.querySelector('b').textContent = Math.round(S.gas);
+  gasEl.classList.toggle('warn', S.gas<70);
+  gasEl.classList.toggle('danger', S.gas<50);
+  const m = Math.floor(S.diveTime/60), s = String(S.diveTime%60).padStart(2,'0');
+  document.querySelector('#hud-time b').textContent = `${m}:${s}`;
+}
+setInterval(()=>{ if (S.started){ S.diveTime++; updateHUD(); } }, 1000);
+updateHUD();
+
+const stage = document.getElementById('stage');
+function go(route){ location.hash = route; }
+function render(){
+  const h = location.hash || '#/home';
+  const view = VIEWS[h] || VIEWS['#/home'];
+  stage.innerHTML = view();
+  if (AFTER[h]) AFTER[h]();
+  window.scrollTo(0,0);
+}
+window.addEventListener('hashchange', render);
+
+const VIEWS = {};
+const AFTER = {};
+
+/* L1 */
+VIEWS['#/l1'] = () => `
+<section class="view">
+  <span class="kicker">关卡 1 / 8</span>
+  <h1>装备检查 BWRAF</h1>
+  <p class="lede">每次下水前，潜伴之间要按固定顺序互相检查。记住这五个字母：<b>B – W – R – A – F</b>。顺序错了，就可能带着没开的瓶阀下水。</p>
+  <div class="tip"><b>正确顺序：</b>BCD 充气是否正常 → 配重是否扣好 → 快卸扣能否一手松开 → 气源开足、残压表读数 → 最终互相 OK 手势。</div>
+  <div class="arena">
+    <div class="label">点击正确的检查顺序</div>
+    <div class="gear-list" id="gear-list">
+      <div class="gear-item" data-key="weight">${ICONS.weight}<b>W · 配重</b><br><small>扣好 / 快卸可及</small></div>
+      <div class="gear-item" data-key="air">${ICONS.air}<b>A · 气源</b><br><small>瓶阀开到底回半圈</small></div>
+      <div class="gear-item" data-key="bcd">${ICONS.bcd}<b>B · BCD</b><br><small>充气 / 排气阀正常</small></div>
+      <div class="gear-item" data-key="finalok">${ICONS.ok}<b>F · 最终 OK</b><br><small>潜伴互相打手势</small></div>
+      <div class="gear-item" data-key="release">${ICONS.release}<b>R · 快卸扣</b><br><small>一手可松开</small></div>
+    </div>
+    <div class="feedback" id="l1-fb"></div>
+    <div style="margin-top:14px;font-size:13px;color:rgba(232,241,248,.6)">已点击顺序：<span id="l1-seq">（空）</span></div>
+  </div>
+  <div class="actions">
+    <button class="btn ghost" onclick="go('#/map')">返回地图</button>
+    <button class="btn" id="l1-next" style="display:none" onclick="completeL1()">确认完成</button>
+  </div>
+</section>`;
+AFTER['#/l1'] = () => {
+  const correct = ['bcd','weight','release','air','finalok'];
+  const userSeq = [];
+  const fb = document.getElementById('l1-fb');
+  const seqEl = document.getElementById('l1-seq');
+  document.querySelectorAll('.gear-item').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      if (el.classList.contains('done')) return;
+      const k = el.dataset.key;
+      if (k === correct[userSeq.length]){
+        el.classList.add('done'); userSeq.push(k);
+        fb.textContent = '✓ 正确：' + el.querySelector('b').textContent;
+        fb.className = 'feedback good';
+        seqEl.textContent = userSeq.join(' → ');
+        if (userSeq.length === correct.length){
+          document.getElementById('l1-next').style.display = 'inline-flex';
+          fb.textContent = '完美，BWRAF 顺序正确。';
+        }
+      } else {
+        fb.textContent = '顺序不对。再想想 BWRAF 五个字母——B 是第一个。';
+        fb.className = 'feedback bad';
+      }
+    });
+  });
+};
+function completeL1(){ S.cleared.l1 = true; go('#/map'); }
+
+/* L2 */
+VIEWS['#/l2'] = () => `
+<section class="view">
+  <span class="kicker">关卡 2 / 8</span>
+  <h1>背后式入水</h1>
+  <p class="lede">在船尾坐下，regulator 咬好、按住面镜和气瓶阀，身体保持挺直向后倒。关键：<b>不是"跳"，也不是"瘫"，是像一块木板一样平拍进水里</b>——否则会拍肚子、脱面镜。</p>
+  <div class="tip"><b>动作要领：</b> 身体像板子一样直。在心里数 "1 – 2 – 3"，在 <b>3</b> 的瞬间倒。太早倒会拍船边，太晚倒会往前栽。</div>
+  <div class="arena">
+    <div class="label">看准绿区，点"倒入水"</div>
+    <div class="timing-bar">
+      <div class="zone" style="left:42%;width:16%"></div>
+      <div class="marker" id="l2-marker" style="left:0%"></div>
+    </div>
+    <div class="big-figure" id="l2-status">准备好了</div>
+    <div class="feedback" id="l2-fb"></div>
+    <div class="actions" style="margin-top:18px">
+      <button class="btn big" id="l2-drop" onclick="doDrop()">1 – 2 – 3 倒！</button>
+    </div>
+  </div>
+  <div class="actions">
+    <button class="btn ghost" onclick="go('#/map')">返回地图</button>
+    <button class="btn" id="l2-next" style="display:none" onclick="completeL2()">游向潜点</button>
+  </div>
+</section>`;
+let l2Timer = null;
+AFTER['#/l2'] = () => {
+  const marker = document.getElementById('l2-marker');
+  clearInterval(l2Timer);
+  let pos = 0, dir = 1;
+  l2Timer = setInterval(()=>{
+    pos += dir * 1.2;
+    if (pos > 100){ pos = 100; dir = -1; }
+    if (pos < 0){ pos = 0; dir = 1; }
+    marker.style.left = pos + '%';
+    window.__l2Pos = pos;
+  }, 30);
+};
+function doDrop(){
+  const pos = window.__l2Pos;
+  const fb = document.getElementById('l2-fb');
+  const status = document.getElementById('l2-status');
+  const btn = document.getElementById('l2-drop');
+  if (pos >= 42 && pos <= 58){
+    fb.textContent = '漂亮。身体像木板一样平直入水，没有拍水、没有脱面镜。';
+    fb.className = 'feedback good';
+    status.textContent = '入水成功'; btn.disabled = true;
+    clearInterval(l2Timer);
+    document.getElementById('l2-next').style.display = 'inline-flex';
+  } else if (pos < 42){
+    fb.textContent = '太早了。身体还没到位就倒——会拍在船舷上。再等一下，到绿区。';
+    fb.className = 'feedback bad'; status.textContent = '拍船边';
+  } else {
+    fb.textContent = '太晚了。犹豫过久，身体已经往前栽，会拍肚子。下次数到 3 立刻倒。';
+    fb.className = 'feedback bad'; status.textContent = '拍肚子';
+  }
+}
+function completeL2(){ S.cleared.l2 = true; go('#/map'); }
+
+/* L3 */
+VIEWS['#/l3'] = () => `
+<section class="view">
+  <span class="kicker">关卡 3 / 8</span>
+  <h1>下潜 · 耳压平衡</h1>
+  <p class="lede">下潜时水压每下 1 米都在挤压你的耳膜。<b>主动、提前</b>做耳压平衡——捏鼻、闭嘴、轻轻向鼻子"鼓气"。等耳朵疼了再做，已经晚了。</p>
+  <div class="tip warn"><b>记住：</b> 每下 0.5–1 米做一次。下潜前就先做一次预平衡。如果做不通，停止下潜、上浮 30cm，再试。<b>绝对不要用力硬顶。</b></div>
+  <div class="arena">
+    <div class="label">目标深度</div>
+    <div class="big-figure"><span id="l3-depth">0.0</span><small>/ 12.0 m</small></div>
+    <div class="bar"><i id="l3-bar" style="width:0%"></i></div>
+    <div class="feedback" id="l3-fb">准备下潜。先做一次预平衡。</div>
+    <div class="actions" style="margin-top:18px">
+      <button class="btn" onclick="l3Equalize()">捏鼻鼓气（耳压平衡）</button>
+      <button class="btn ghost" id="l3-descent" onclick="l3Descent()">开始下潜</button>
+    </div>
+  </div>
+  <div class="actions">
+    <button class="btn ghost" onclick="go('#/map')">返回地图</button>
+    <button class="btn" id="l3-next" style="display:none" onclick="completeL3()">到达潜点</button>
+  </div>
+</section>`;
+let l3State = { depth:0, lastEq:0, descending:false, timer:null, eqDone:false };
+AFTER['#/l3'] = () => {
+  l3State = { depth:0, lastEq:0, descending:false, timer:null, eqDone:false };
+  document.getElementById('l3-depth').textContent = '0.0';
+  document.getElementById('l3-bar').style.width = '0%';
+  document.getElementById('l3-fb').textContent = '准备下潜。先做一次预平衡。';
+  document.getElementById('l3-fb').className = 'feedback';
+  document.getElementById('l3-next').style.display = 'none';
+  document.getElementById('l3-descent').disabled = false;
+};
+function l3Equalize(){
+  l3State.lastEq = l3State.depth; l3State.eqDone = true;
+  const fb = document.getElementById('l3-fb');
+  fb.textContent = '耳压平衡完成，耳膜"啪"地一下打开。继续下潜。';
+  fb.className = 'feedback good';
+}
+function l3Descent(){
+  if (!l3State.eqDone){ const fb=document.getElementById('l3-fb'); fb.textContent='先做一次预平衡再下潜。'; fb.className='feedback bad'; return; }
+  if (l3State.descending) return;
+  l3State.descending = true;
+  document.getElementById('l3-descent').disabled = true;
+  clearInterval(l3State.timer);
+  l3State.timer = setInterval(()=>{
+    l3State.depth += 0.25;
+    if (l3State.depth - l3State.lastEq > 1.2){
+      const fb = document.getElementById('l3-fb');
+      fb.textContent = '耳朵开始闷了！立刻捏鼻鼓气。再不下潜就回沉。';
+      fb.className = 'feedback bad';
+      l3State.depth = Math.max(0, l3State.depth - 0.6);
+      l3State.lastEq = l3State.depth;
+    }
+    document.getElementById('l3-depth').textContent = l3State.depth.toFixed(1);
+    document.getElementById('l3-bar').style.width = Math.min(100, l3State.depth/12*100) + '%';
+    if (l3State.depth >= 12){
+      clearInterval(l3State.timer); l3State.depth = 12;
+      document.getElementById('l3-fb').textContent = '到达 12 米潜点。全程耳压畅通，没有硬顶。';
+      document.getElementById('l3-fb').className = 'feedback good';
+      document.getElementById('l3-next').style.display = 'inline-flex';
+    }
+  }, 400);
+}
+function completeL3(){ S.cleared.l3 = true; S.depth = 12; updateHUD(); go('#/map'); }
+
+/* L4 */
+VIEWS['#/l4'] = () => `
+<section class="view">
+  <span class="kicker">关卡 4 / 8</span>
+  <h1>面镜排水</h1>
+  <p class="lede">面镜进水是潜水中最常见的状况。别慌。动作：<b>① 抬头向上看 → ② 用一只手食指按住面镜上沿（鼻梁处）→ ③ 用鼻子缓慢、稳定地呼气</b>，气体会把水从面镜下沿顶出去。</p>
+  <div class="tip"><b>为什么用鼻子：</b>你嘴里咬着调节器。用鼻子呼气，既不影响呼吸，又能把面镜里的水顶出去。</div>
+  <div class="arena">
+    <div class="label">面镜水位</div>
+    <div class="big-figure"><span id="l4-water">80</span><small>% 进水</small></div>
+    <div class="bar danger"><i id="l4-bar" style="width:80%;background:var(--red)"></i></div>
+    <div class="feedback" id="l4-fb">面镜进了大半的水，眼前模糊。</div>
+    <div class="actions" style="margin-top:18px">
+      <button class="btn" id="l4-step1" onclick="l4Step1()">① 抬头向上看</button>
+      <button class="btn ghost" id="l4-step2" onclick="l4Step2()" disabled>② 按住面镜上沿</button>
+      <button class="btn ghost" id="l4-blow" onmousedown="l4BlowStart()" onmouseup="l4BlowStop()" onmouseleave="l4BlowStop()" ontouchstart="l4BlowStart()" ontouchend="l4BlowStop()">③ 按住用鼻子呼气</button>
+    </div>
+  </div>
+  <div class="actions">
+    <button class="btn ghost" onclick="go('#/map')">返回地图</button>
+    <button class="btn" id="l4-next" style="display:none" onclick="completeL4()">继续下潜</button>
+  </div>
+</section>`;
+let l4State = { water:80, step:0, blowTimer:null };
+AFTER['#/l4'] = () => {
+  l4State = { water:80, step:0, blowTimer:null };
+  document.getElementById('l4-water').textContent = '80';
+  document.getElementById('l4-bar').style.width = '80%';
+  document.getElementById('l4-fb').textContent = '面镜进了大半的水，眼前模糊。';
+  document.getElementById('l4-fb').className = 'feedback';
+  document.getElementById('l4-next').style.display = 'none';
+  document.getElementById('l4-step1').disabled = false;
+  document.getElementById('l4-step2').disabled = true;
+  document.getElementById('l4-blow').disabled = true;
+};
+function l4Step1(){
+  l4State.step = 1;
+  document.getElementById('l4-step1').disabled = true;
+  document.getElementById('l4-step2').disabled = false;
+  document.getElementById('l4-fb').textContent = '头抬起来了，水自然沉到面镜下半部分。';
+  document.getElementById('l4-fb').className = 'feedback good';
+}
+function l4Step2(){
+  l4State.step = 2;
+  document.getElementById('l4-step2').disabled = true;
+  document.getElementById('l4-blow').disabled = false;
+  document.getElementById('l4-fb').textContent = '食指压住面镜鼻梁上沿，封住上沿。现在用鼻子呼气。';
+}
+function l4BlowStart(){
+  if (l4State.step < 2) return;
+  clearInterval(l4State.blowTimer);
+  l4State.blowTimer = setInterval(()=>{
+    l4State.water -= 4;
+    if (l4State.water <= 0){
+      l4State.water = 0; clearInterval(l4State.blowTimer);
+      document.getElementById('l4-fb').textContent = '水排干净了，视线清晰。一次成功。';
+      document.getElementById('l4-fb').className = 'feedback good';
+      document.getElementById('l4-next').style.display = 'inline-flex';
+    }
+    document.getElementById('l4-water').textContent = Math.max(0, Math.round(l4State.water));
+    document.getElementById('l4-bar').style.width = Math.max(0, l4State.water) + '%';
+  }, 120);
+}
+function l4BlowStop(){ clearInterval(l4State.blowTimer); }
+function completeL4(){ S.cleared.l4 = true; go('#/map'); }
+
+/* L5 */
+VIEWS['#/l5'] = () => `
+<section class="view">
+  <span class="kicker">关卡 5 / 8</span>
+  <h1>调节器寻回</h1>
+  <p class="lede">调节器从嘴里掉出来是 OW 考核的硬项目。正确流程：<b>① 用鼻子缓慢呼气 → ② 右手臂横扫（sweep）→ ③ 顺着右臂摸到右腿侧（reach）→ ④ 咬住二级头 → ⑤ 向调节器呼气，把里面的水吹掉</b>。</p>
+  <div class="tip danger"><b>最容易错：</b>掉了立刻大口吸气——会吸一肚子水。记住，<b>永远持续呼气</b>。</div>
+  <div class="arena">
+    <div class="label">按顺序点动作</div>
+    <div class="big-figure" id="l5-step" style="font-size:32px">调节器掉了！</div>
+    <div class="feedback" id="l5-fb">先用鼻子慢慢呼气，别慌。</div>
+    <div class="actions" style="margin-top:18px">
+      <button class="btn" id="l5-a1" onclick="l5Move(1)">① 鼻子呼气</button>
+      <button class="btn ghost" id="l5-a2" onclick="l5Move(2)" disabled>② 右臂横扫</button>
+      <button class="btn ghost" id="l5-a3" onclick="l5Move(3)" disabled>③ 摸向右腿</button>
+      <button class="btn ghost" id="l5-a4" onclick="l5Move(4)" disabled>④ 咬住</button>
+      <button class="btn ghost" id="l5-a5" onclick="l5Move(5)" disabled>⑤ 呼气排水</button>
+    </div>
+  </div>
+  <div class="actions">
+    <button class="btn ghost" onclick="go('#/map')">返回地图</button>
+    <button class="btn" id="l5-next" style="display:none" onclick="completeL5()">恢复呼吸</button>
+  </div>
+</section>`;
+let l5State = { step:0 };
+AFTER['#/l5'] = () => {
+  l5State = { step:0 };
+  document.getElementById('l5-step').textContent = '调节器掉了！';
+  document.getElementById('l5-fb').textContent = '先用鼻子慢慢呼气，别慌。';
+  document.getElementById('l5-fb').className = 'feedback';
+  document.getElementById('l5-next').style.display = 'none';
+  [1,2,3,4,5].forEach(i=>{
+    const el = document.getElementById('l5-a'+i);
+    el.disabled = (i!==1); el.classList.remove('ghost');
+  });
+};
+function l5Move(n){
+  if (n !== l5State.step + 1){
+    document.getElementById('l5-fb').textContent = '顺序错了。先回到上一步。';
+    document.getElementById('l5-fb').className = 'feedback bad'; return;
+  }
+  l5State.step = n;
+  const msgs = {
+    1:'气从鼻子缓缓流出，嘴边的气泡被推开。',
+    2:'右臂从脸侧向外横扫，扫过整个水面。',
+    3:'手顺着右臂一路摸下去，摸到右腿侧。',
+    4:'找到了！二级头从嘴角咬进去，舌头顶住。',
+    5:'向调节器里呼气，"咕噜"一声把水吹出来。吸气，恢复正常呼吸。' };
+  document.getElementById('l5-fb').textContent = msgs[n];
+  document.getElementById('l5-fb').className = 'feedback good';
+  document.getElementById('l5-step').textContent = '步骤 ' + n + ' / 5';
+  document.getElementById('l5-a'+n).classList.add('ghost');
+  if (n < 5) document.getElementById('l5-a'+(n+1)).disabled = false;
+  else document.getElementById('l5-next').style.display = 'inline-flex';
+}
+function completeL5(){ S.cleared.l5 = true; go('#/map'); }
+
+/* L6 */
+VIEWS['#/l6'] = () => `
+<section class="view">
+  <span class="kicker">关卡 6 / 8</span>
+  <h1>中性浮力</h1>
+  <p class="lede">中性浮力是潜水的灵魂。你要在 10 米深的水层里<b>既不沉、也不浮</b>，像悬浮在水中的宇航员。</p>
+  <div class="tip"><b>目标：</b>让潜水员停在绿色带（10 米 ±1 米）内保持 <b>3 秒</b>。不要一次性猛充气，每次只按一下。</div>
+  <div class="arena">
+    <div class="label">水柱示意 · 目标深度 10 m</div>
+    <div class="buoy-tank">
+      <div class="buoy-band" style="top:55%;height:18%"></div>
+      <div class="buoy-depth-mark" style="top:8%">0 m</div>
+      <div class="buoy-depth-mark" style="top:38%">5 m</div>
+      <div class="buoy-depth-mark" style="top:65%">10 m</div>
+      <div class="buoy-depth-mark" style="top:92%">15 m</div>
+      <div class="buoy-diver" id="l6-diver" style="top:80%">
+        <svg viewBox="0 0 40 40" fill="none" stroke="#3FD8D0" stroke-width="2">
+          <circle cx="20" cy="12" r="5"/>
+          <path d="M20 17 L20 30 M20 22 L12 26 M20 22 L28 26 M20 30 L14 38 M20 30 L26 38"/>
+        </svg>
+      </div>
+    </div>
+    <div class="big-figure"><span id="l6-depth">8.0</span><small>m</small></div>
+    <div class="feedback" id="l6-fb">开始调整。</div>
+    <div class="actions" style="margin-top:18px">
+      <button class="btn" onclick="l6Buoy(+1)">向 BCD 充气（上浮）</button>
+      <button class="btn ghost" onclick="l6Buoy(-1)">拉排气阀（下沉）</button>
+    </div>
+  </div>
+  <div class="actions">
+    <button class="btn ghost" onclick="go('#/map')">返回地图</button>
+    <button class="btn" id="l6-next" style="display:none" onclick="completeL6()">悬停成功</button>
+  </div>
+</section>`;
+let l6State = { depth:8, holdTime:0, timer:null };
+AFTER['#/l6'] = () => {
+  l6State = { depth:8, holdTime:0, timer:null };
+  clearInterval(l6State.timer);
+  document.getElementById('l6-fb').textContent = '开始调整。';
+  document.getElementById('l6-fb').className = 'feedback';
+  document.getElementById('l6-next').style.display = 'none';
+  l6Render();
+  l6State.timer = setInterval(()=>{
+    l6State.depth += (Math.random()-.5) * 0.3;
+    l6State.depth = Math.max(0.5, Math.min(14.5, l6State.depth));
+    if (l6State.depth >= 9 && l6State.depth <= 11){
+      l6State.holdTime += 0.3;
+      document.getElementById('l6-fb').textContent = '稳定在带内…… ' + l6State.holdTime.toFixed(1) + 's';
+      document.getElementById('l6-fb').className = 'feedback good';
+      if (l6State.holdTime >= 3){
+        clearInterval(l6State.timer);
+        document.getElementById('l6-fb').textContent = '中性浮力建立！你在水中悬浮了。';
+        document.getElementById('l6-next').style.display = 'inline-flex';
+      }
+    } else {
+      l6State.holdTime = 0;
+      document.getElementById('l6-fb').textContent = l6State.depth < 9 ? '在下沉——给 BCD 轻轻补一点气。' : '在上浮——拉排气阀放一点气。';
+      document.getElementById('l6-fb').className = 'feedback bad';
+    }
+    l6Render();
+  }, 300);
+};
+function l6Render(){
+  document.getElementById('l6-diver').style.top = (5 + l6State.depth/15*85) + '%';
+  document.getElementById('l6-depth').textContent = l6State.depth.toFixed(1);
+}
+function l6Buoy(d){
+  l6State.depth = Math.max(0.5, Math.min(14.5, l6State.depth - d*0.8));
+  l6Render();
+}
+function completeL6(){ S.cleared.l6 = true; go('#/map'); }
+
+/* L7 */
+VIEWS['#/l7'] = () => `
+<section class="view">
+  <span class="kicker">关卡 7 / 8</span>
+  <h1>水下手势</h1>
+  <p class="lede">水下不能说话。手势就是你的语言。下面五个是 OW 必须认熟的。</p>
+  <div class="arena">
+    <div class="label" id="l7-q-label">第 1 / 5 题</div>
+    <div class="gesture-demo" id="l7-gesture"></div>
+    <div class="quiz-opts" id="l7-opts"></div>
+    <div class="feedback" id="l7-fb"></div>
+  </div>
+  <div class="actions">
+    <button class="btn ghost" onclick="go('#/map')">返回地图</button>
+    <button class="btn" id="l7-next" style="display:none" onclick="completeL7()">继续</button>
+  </div>
+</section>`;
+const GESTURES = [
+  { svg:'<svg viewBox="0 0 100 100" width="120" height="120" fill="none" stroke="#3FD8D0" stroke-width="3"><circle cx="50" cy="50" r="30"/><path d="M35 50 L46 60 L65 40"/></svg>', opts:['我OK / 你OK','上升','下潜','停止'], ans:0 },
+  { svg:'<svg viewBox="0 0 100 100" width="120" height="120" fill="none" stroke="#3FD8D0" stroke-width="3"><path d="M50 80 L50 30 M35 45 L50 30 L65 45"/></svg>', opts:['缓慢下潜','上升','看潜伴','停在这里'], ans:1 },
+  { svg:'<svg viewBox="0 0 100 100" width="120" height="120" fill="none" stroke="#3FD8D0" stroke-width="3"><rect x="30" y="40" width="40" height="25"/><circle cx="50" cy="52" r="6"/></svg>', opts:['这边走','你气瓶剩多少气','我残压不足 50 bar','看潜伴'], ans:2 },
+  { svg:'<svg viewBox="0 0 100 100" width="120" height="120" fill="none" stroke="#3FD8D0" stroke-width="3"><path d="M30 50 L70 50 M40 40 L70 50 L40 60"/></svg>', opts:['回去','往这边游','看我的表','停'], ans:1 },
+  { svg:'<svg viewBox="0 0 100 100" width="120" height="120" fill="none" stroke="#3FD8D0" stroke-width="3"><path d="M50 30 L50 70 M30 50 L70 50"/></svg>', opts:['继续','在这儿集合','停止 / 不要动','下潜'], ans:2 },
+];
+let l7Idx = 0, l7Score = 0;
+AFTER['#/l7'] = () => { l7Idx = 0; l7Score = 0; l7RenderQ(); };
+function l7RenderQ(){
+  const g = GESTURES[l7Idx];
+  document.getElementById('l7-q-label').textContent = `第 ${l7Idx+1} / 5 题`;
+  document.getElementById('l7-gesture').innerHTML = g.svg;
+  document.getElementById('l7-fb').textContent = '';
+  document.getElementById('l7-fb').className = 'feedback';
+  const optsEl = document.getElementById('l7-opts');
+  optsEl.innerHTML = '';
+  g.opts.forEach((o,i)=>{
+    const b = document.createElement('button');
+    b.className = 'quiz-opt';
+    b.textContent = String.fromCharCode(65+i) + '. ' + o;
+    b.onclick = ()=>l7Answer(i, b, optsEl);
+    optsEl.appendChild(b);
+  });
+}
+function l7Answer(i, btn, optsEl){
+  const g = GESTURES[l7Idx];
+  const all = optsEl.querySelectorAll('.quiz-opt');
+  all.forEach(b=>b.disabled = true);
+  if (i === g.ans){ btn.classList.add('correct'); l7Score++; document.getElementById('l7-fb').textContent = '正确。'; document.getElementById('l7-fb').className = 'feedback good'; }
+  else { btn.classList.add('wrong'); all[g.ans].classList.add('correct'); document.getElementById('l7-fb').textContent = '不对。正确答案是：' + g.opts[g.ans]; document.getElementById('l7-fb').className = 'feedback bad'; }
+  setTimeout(()=>{
+    l7Idx++;
+    if (l7Idx >= GESTURES.length){
+      document.getElementById('l7-q-label').textContent = `完成 · ${l7Score} / 5`;
+      document.getElementById('l7-gesture').innerHTML = '';
+      document.getElementById('l7-opts').innerHTML = '';
+      document.getElementById('l7-fb').textContent = l7Score>=4 ? '手势识别合格。' : '多看看潜伴手册，再来一次也可以。';
+      document.getElementById('l7-next').style.display = 'inline-flex';
+    } else l7RenderQ();
+  }, 1300);
+}
+function completeL7(){ S.cleared.l7 = true; go('#/map'); }
+
+/* L8 */
+VIEWS['#/l8'] = () => `
+<section class="view">
+  <span class="kicker">关卡 8 / 8</span>
+  <h1>上升与安全停留</h1>
+  <p class="lede">这是 OW 最容易出事的环节。<b>上升速率 ≤ 18 米/分钟</b>（比你呼出的气泡慢）。到 5 米做 <b>3 分钟安全停留</b>，再出水。</p>
+  <div class="tip warn"><b>太快会怎样：</b>氮气气泡来不及从血液里排出，导致减压病。记住——<b>永远比气泡慢</b>。</div>
+  <div class="arena">
+    <div class="label">当前深度</div>
+    <div class="big-figure"><span id="l8-depth">12.0</span><small>m</small></div>
+    <div class="bar warn"><i id="l8-bar" style="width:80%"></i></div>
+    <div class="grid c2" style="margin-top:14px;text-align:left">
+      <div><small style="color:rgba(232,241,248,.6)">上升速率</small>
+        <div id="l8-rate" style="font-size:20px;font-weight:700">0 m/min</div></div>
+      <div><small style="color:rgba(232,241,248,.6)">5m 停留</small>
+        <div id="l8-stop" style="font-size:20px;font-weight:700">未到</div></div>
+    </div>
+    <div class="feedback" id="l8-fb">从 12 米开始上升。慢慢的。</div>
+    <div class="actions" style="margin-top:18px">
+      <button class="btn" onmousedown="l8Go(true)" onmouseup="l8Go(false)" onmouseleave="l8Go(false)" ontouchstart="l8Go(true)" ontouchend="l8Go(false)">按住：缓慢上升</button>
+      <button class="btn ghost" onclick="l8Stop()">原地停留</button>
+    </div>
+  </div>
+  <div class="actions">
+    <button class="btn ghost" onclick="go('#/map')">返回地图</button>
+    <button class="btn" id="l8-next" style="display:none" onclick="completeL8()">出水</button>
+  </div>
+</section>`;
+let l8State = { depth:12, rising:false, stopTime:0, timer:null, canSurface:false };
+AFTER['#/l8'] = () => {
+  l8State = { depth:12, rising:false, stopTime:0, timer:null, canSurface:false };
+  clearInterval(l8State.timer);
+  document.getElementById('l8-depth').textContent = '12.0';
+  document.getElementById('l8-fb').textContent = '从 12 米开始上升。慢慢的。';
+  document.getElementById('l8-fb').className = 'feedback';
+  document.getElementById('l8-next').style.display = 'none';
+  document.getElementById('l8-stop').textContent = '未到';
+  l8State.timer = setInterval(()=>{
+    if (l8State.rising){
+      l8State.depth -= 0.08;
+      document.getElementById('l8-rate').textContent = '约 15 m/min';
+    } else {
+      document.getElementById('l8-rate').textContent = '悬停中';
+      if (l8State.depth <= 5.5 && l8State.depth >= 4.5){
+        l8State.stopTime += 0.3;
+        document.getElementById('l8-stop').textContent = Math.round(l8State.stopTime/10*3) + ' / 3 min';
+        if (l8State.stopTime >= 3){
+          document.getElementById('l8-stop').textContent = '3 分钟完成';
+          document.getElementById('l8-fb').textContent = '安全停留完成，可以出水。';
+          document.getElementById('l8-fb').className = 'feedback good';
+          l8State.canSurface = true;
+        }
+      }
+    }
+    l8State.depth = Math.max(0, l8State.depth);
+    document.getElementById('l8-depth').textContent = l8State.depth.toFixed(1);
+    document.getElementById('l8-bar').style.width = (l8State.depth/15*100) + '%';
+    if (l8State.depth <= 0 && l8State.canSurface){
+      clearInterval(l8State.timer);
+      document.getElementById('l8-next').style.display = 'inline-flex';
+    } else if (l8State.depth <= 0 && !l8State.canSurface){
+      document.getElementById('l8-fb').textContent = '等等！你没在 5 米做安全停留就出水了。重来。';
+      document.getElementById('l8-fb').className = 'feedback bad';
+      clearInterval(l8State.timer);
+      setTimeout(()=>AFTER['#/l8'](), 2000);
+    }
+  }, 300);
+};
+function l8Go(up){ l8State.rising = up; }
+function l8Stop(){ l8State.rising = false; }
+function completeL8(){ S.cleared.l8 = true; S.depth = 0; S.gas = Math.max(30, S.gas-40); updateHUD(); go('#/map'); }
+
+/* EXAM */
+const EXAM = [
+  { q:'水肺潜水时，下列哪个动作是<strong>绝对禁止</strong>的？', opts:['缓慢深长地呼吸','在水下憋气','用鼻子做面镜排水','和潜伴保持目光接触'], ans:1, why:'空气在肺里随深度膨胀/收缩。憋气上升会让肺过度扩张，可能造成致命的气体栓塞。' },
+  { q:'残压表读数降到多少 bar，你必须开始上升？', opts:['100 bar','70 bar','50 bar','30 bar'], ans:2, why:'50 bar 是"建议上升"的警戒线；30 bar 是紧急。OW 课程教的常规安全残压是 50 bar。' },
+  { q:'休闲水肺潜水推荐的最大上升速率是？', opts:['9 米/分钟','18 米/分钟','30 米/分钟','越快越好'], ans:1, why:'PADI 等机构统一要求不超过 18 米/分钟，比你呼出的气泡慢。' },
+  { q:'安全停留（安全潜停）的深度和时间是？', opts:['3 米 · 1 分钟','5 米 · 3 分钟','10 米 · 5 分钟','不需要停留'], ans:1, why:'5 米停留 3 分钟，让溶解的氮气有时间排出。' },
+  { q:'下潜时耳压平衡，最佳做法是？', opts:['耳朵疼了再做','下潜前做一次，之后每下 0.5–1 米主动做','用力捏鼻使劲鼓','忍着不做'], ans:1, why:'主动、提前做。等耳朵疼了说明已经挤压，需要上浮再试。' },
+  { q:'面镜排水时，气应该从哪里呼出来？', opts:['嘴里','鼻子','面镜排气阀','不用呼气'], ans:1, why:'regulator 在嘴里，所以用鼻子缓慢呼气，把水从面镜下沿顶出去。' },
+  { q:'调节器从嘴里掉出来，第一步应该做什么？', opts:['立刻大口吸气','用鼻子缓慢持续呼气','挥手游向水面','抓住潜伴'], ans:1, why:'持续呼气防止肺过度扩张，同时推开嘴边的水，再做 sweep+reach 寻回。' },
+  { q:'BWRAF 中的 "A" 指什么？', opts:['Aqua 水','Air 气源（瓶阀、残压表）','Anchor 锚','Attitude 姿态'], ans:1, why:'B=BCD, W=Weights, R=Releases, A=Air, F=Final OK。' },
+  { q:'OW（开放水域潜水员）认证的最大不减压深度是？', opts:['12 米','18 米','30 米','40 米'], ans:1, why:'OW 最大 18 米；AOW 可以到 30 米。' },
+  { q:'一次潜水结束后，多久不能坐飞机？', opts:['1 小时','4 小时','至少 12–18 小时（多日潜水建议 24 小时以上）','随时可以'], ans:2, why:'残留氮气需要时间排出。单次潜水 12h+，多次 24h+。' },
+];
+VIEWS['#/exam'] = () => `
+<section class="view">
+  <span class="kicker">OW 理论考</span>
+  <h1>十题定胜负</h1>
+  <p class="lede">80 分（8/10）通过。答错会告诉你为什么。可以重来。</p>
+  <div class="arena">
+    <div class="label" id="ex-label">第 1 / 10 题</div>
+    <div class="quiz-q" id="ex-q"></div>
+    <div class="quiz-opts" id="ex-opts"></div>
+    <div class="feedback" id="ex-fb"></div>
+  </div>
+  <div class="actions">
+    <button class="btn ghost" onclick="go('#/map')">返回地图</button>
+    <button class="btn" id="ex-next" style="display:none" onclick="exNext()">下一题</button>
+  </div>
+</section>`;
+let exIdx = 0, exScore = 0;
+AFTER['#/exam'] = () => { exIdx = 0; exScore = 0; exRenderQ(); };
+function exRenderQ(){
+  const item = EXAM[exIdx];
+  document.getElementById('ex-label').textContent = `第 ${exIdx+1} / 10 题 · 当前 ${exScore} 分`;
+  document.getElementById('ex-q').innerHTML = item.q;
+  document.getElementById('ex-fb').textContent = '';
+  document.getElementById('ex-fb').className = 'feedback';
+  document.getElementById('ex-next').style.display = 'none';
+  const optsEl = document.getElementById('ex-opts');
+  optsEl.innerHTML = '';
+  item.opts.forEach((o,i)=>{
+    const b = document.createElement('button');
+    b.className = 'quiz-opt';
+    b.innerHTML = String.fromCharCode(65+i) + '. ' + o;
+    b.onclick = ()=>exAnswer(i, b, optsEl);
+    optsEl.appendChild(b);
+  });
+}
+function exAnswer(i, btn, optsEl){
+  const item = EXAM[exIdx];
+  const all = optsEl.querySelectorAll('.quiz-opt');
+  all.forEach(b=>b.disabled = true);
+  const fb = document.getElementById('ex-fb');
+  if (i === item.ans){ btn.classList.add('correct'); exScore++; fb.textContent = '✓ ' + item.why; fb.className = 'feedback good'; }
+  else { btn.classList.add('wrong'); all[item.ans].classList.add('correct'); fb.textContent = '✗ ' + item.why; fb.className = 'feedback bad'; }
+  document.getElementById('ex-next').style.display = 'inline-flex';
+}
+function exNext(){
+  exIdx++;
+  if (exIdx >= EXAM.length){ S.examScore = exScore; go('#/cert'); }
+  else exRenderQ();
+}
+
+/* CERT */
+VIEWS['#/cert'] = () => {
+  const passed = S.examScore >= 8;
+  return `
+  <section class="view">
+    <span class="kicker">${passed ? 'Certified' : 'Try Again'}</span>
+    <h1>${passed ? '恭喜，你拿到了虚拟 OW 证书' : '差一点点，再练一轮'}</h1>
+    <div class="cert">
+      <div class="seal">OW</div>
+      <h2>Open Water Diver</h2>
+      <p>虚拟结业证书</p>
+      <div class="name">${S.name}</div>
+      <p>实操考核：${Object.values(S.cleared).filter(Boolean).length} / 8 关<br>
+        理论考试：<b style="color:${passed?'var(--cyan)':'var(--red)'}">${S.examScore} / ${EXAM.length}</b></p>
+      <p style="margin-top:18px;font-size:12px">本证书仅为教学模拟，不替代 PADI / SSI / NAUI 等机构的真实认证。真实潜水请在合格教练指导下进行。</p>
+    </div>
+    <div class="actions">
+      ${passed ? '<button class="btn big" onclick="go(\'#/home\')">完成</button>' : '<button class="btn big" onclick="restartAll()">重新挑战</button>'}
+    </div>
+  </section>`;
+};
+function restartAll(){
+  S.cleared = {l1:false,l2:false,l3:false,l4:false,l5:false,l6:false,l7:false,l8:false};
+  S.examScore = 0; go('#/map');
+}
+
+/* ICONS */
+const ICONS = {
+  bcd:'<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2"><rect x="10" y="12" width="28" height="24" rx="6"/><circle cx="24" cy="24" r="3"/><path d="M10 20 L4 16 M38 20 L44 16"/></svg>',
+  weight:'<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2"><rect x="14" y="14" width="20" height="20" rx="3"/><circle cx="24" cy="24" r="2"/><path d="M24 14 L24 6 M24 6 L20 6 M24 6 L28 6"/></svg>',
+  release:'<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 24 L20 24 M20 24 L20 16 L36 16 L36 32 L20 32 Z"/><circle cx="30" cy="24" r="2"/></svg>',
+  air:'<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2"><rect x="18" y="8" width="12" height="32" rx="4"/><path d="M24 8 L24 4 M24 4 L20 4 M24 4 L28 4"/><circle cx="24" cy="24" r="3"/></svg>',
+  ok:'<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2"><circle cx="24" cy="24" r="18"/><path d="M16 24 L22 30 L32 18"/></svg>',
+};
+
+/* HOME */
+VIEWS['#/home'] = () => `
+<section class="view active">
+  <div class="hero">
+    <span class="kicker">Open Water Diver · 交互考核</span>
+    <h1>潜入深蓝，<br>用双手记住<em>每一个动作</em>。</h1>
+    <p class="lede">这不是幻灯片。八个实操关卡——装备检查、背后式入水、耳压平衡、面镜排水、调节器寻回、中性浮力、水下手势、上升与安全停留——每一关都要你亲手做对。全部通过后，进入 10 题 OW 理论考，颁发你的虚拟证书。</p>
+    <div class="meta">
+      <span>约 15 分钟</span><span>无需装备</span><span>建议 Chrome / Edge</span>
+    </div>
+    <div class="actions" style="justify-content:flex-start">
+      <button class="btn big" onclick="go('#/briefing')">开始训练营</button>
+      <button class="btn ghost" onclick="go('#/map')">直接看关卡</button>
+    </div>
+  </div>
+</section>`;
+
+/* BRIEFING */
+VIEWS['#/briefing'] = () => `
+<section class="view">
+  <span class="kicker">Mission Briefing</span>
+  <h1>下潜之前，先听规则。</h1>
+  <p class="lede">水肺潜水不是"憋一口气往下沉"。OW 课程要你在水下做出一系列<em>自动化</em>的动作。这个训练营把这些动作拆成可重复的练习。</p>
+  <div class="grid c2">
+    <div class="card"><h3>三条铁律</h3>
+      <p>① 永远不要憋气呼吸——持续、缓慢、深长地呼吸。<br>② 上升速率不超过每分钟 18 米。<br>③ 残压低于 50 bar 必须上升，30 bar 是紧急。</p></div>
+    <div class="card"><h3>怎么算过关</h3>
+      <p>每个关卡会给你即时反馈。全部 8 关完成后开放理论考试。80 分以上颁发证书。</p></div>
+  </div>
+  <div class="tip warn"><b>安全声明：</b>这是教学模拟，不能替代 PADI / SSI / NAUI 等机构的真实 OW 课程。真正的潜水必须在合格教练指导下完成。</div>
+  <div class="actions"><button class="btn big" onclick="startDive(); go('#/map')">我明白了，下水</button></div>
+</section>`;
+function startDive(){ S.started = true; S.diveTime = 0; S.depth = 0; S.gas = 200; updateHUD(); }
+
+/* MAP */
+const LEVELS = [
+  {id:'l1',name:'装备检查 BWRAF',desc:'下水前，按正确顺序过一遍装备'},
+  {id:'l2',name:'背后式入水',desc:'在船尾后倒入水，保持身体水平'},
+  {id:'l3',name:'下潜 · 耳压平衡',desc:'边下潜边主动做耳压平衡'},
+  {id:'l4',name:'面镜排水',desc:'水进面镜后，用鼻子呼气排出去'},
+  {id:'l5',name:'调节器寻回',desc:'调节器脱口，划臂寻回并恢复呼吸'},
+  {id:'l6',name:'中性浮力',desc:'在目标深度悬停，不沉不浮'},
+  {id:'l7',name:'水下手势',desc:'认出五种最常用的沟通手势'},
+  {id:'l8',name:'上升与安全停留',desc:'控制上升速率，5 米停 3 分钟'},
+];
+VIEWS['#/map'] = () => {
+  const clearedCount = Object.values(S.cleared).filter(Boolean).length;
+  const rows = LEVELS.map((lv,i)=>{
+    const prevDone = i===0 || S.cleared[LEVELS[i-1].id];
+    const locked = !prevDone; const done = S.cleared[lv.id];
+    return `
+    <div class="lvl-row ${locked?'locked':''} ${done?'done':''}" onclick="${locked?'':`go('#/${lv.id}')`}">
+      <div class="num">${done?'✓':(i+1)}</div>
+      <div class="body"><b>${lv.name}</b><span>${lv.desc}</span></div>
+      <div class="state">${done?'已完成':(locked?'未解锁':'进入')}</div>
+    </div>`;
+  }).join('');
+  const allDone = clearedCount === 8;
+  return `
+  <section class="view">
+    <span class="kicker">Training Dive</span>
+    <h1>本潜任务清单</h1>
+    <p class="lede">已完成 ${clearedCount} / 8。${allDone ? '可以去考理论了。' : '按顺序完成，前一关是后一关的钥匙。'}</p>
+    <div class="lvl-map">${rows}</div>
+    <div class="actions">
+      ${allDone ? '<button class="btn big" onclick="go(\'#/exam\')">进入 OW 理论考试</button>' : '<button class="btn ghost" onclick="go(\'#/home\')">返回首页</button>'}
+    </div>
+  </section>`;
+};
+
+render();
+</script>
+</body>
+</html>
